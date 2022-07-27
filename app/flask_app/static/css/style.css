@@ -1,0 +1,22 @@
+.container {
+    /* designed for phone 
+    * with 12px padding leaves 366px for chess board
+    * with tiles of size 45 x 45px 
+    */
+    width: 384px; 
+}
+
+.tile {
+    width:45px; 
+    height:45px; 
+    text-align:center; 
+    line-height:45px; 
+    font-size: 45px; 
+    font-family: -apple-system; 
+}
+.light {
+    background-color: white;
+}
+.dark {
+    background-color: #ddd;
+}
