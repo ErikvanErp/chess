@@ -28,6 +28,22 @@ pieces = {
             'B': ("b", "r", u'\u265C'), 
             'C': ("b", "p", u'\u265F')
         }
+
+# return a new board with the move executed
+def test_move(board, move):
+    from_row, from_col, to_row, to_col = move
+
+    color, type, ucode = pieces[board[from_row][from_col]]
+    color_to, type_to, ucode_to = pieces[board[to_row][to_col]]
+    if color == None or color == color_to:
+        return None
+
+    new_board = [[tile for tile in row] for row in board]
+    new_board[to_col][from_col] = board[from_row][from_col]
+    new_board[from_row][from_col] = '0'
+
+    return new_board
+
 #  
 #  The rules for moving various pieces (excl pawn)
 #  All these functions call general_rules
@@ -209,49 +225,84 @@ def is_check(board, color):
     # if no attackers were found, return False
     return False
 
-
 # is king with color check mate 
 # relies on is_check
-# Junly 27: this function is incomplete
-# still need to test whether a move of a piece that is not the king
-# can prevent the attack on the king 
-def is_check_mate(board, color):
+# 
+# there is one situation where check_mate depends on previous move:
+# if en passant capture gets us out of check
+# this is why we have to import the Game class
+# def is_check_mate(board, color):
 
-    if not is_check(board, color):
-        return False
+#     # if not check, then not check mate
+#     if not is_check(board, color):
+#         return False
 
-    # find the king
-    for i in range(8):
-        for j in range(8):
-            if ((color == "w" and board[i][j] == '1') # white king 
-                or (color == "b" and board[i][j] == '7')): # black king
-                king = (i, j)
+#     # find the king
+#     for i in range(8):
+#         for j in range(8):
+#             if ((color == "w" and board[i][j] == '1') # white king 
+#                 or (color == "b" and board[i][j] == '7')): # black king
+#                 king = (i, j)
 
-    # create list of tiles surrounding the king
-    king_nbhd = []
-    for i in [king[0] - 1, king[0], king[0] + 1]:
-        for j in [king[1] - 1, king[1], king[1] + 1]:
-            if i >= 0 and i <= 7 and j >= 0  and j <= 7 and not king == (i,j):
-                king_nbhd.append((i,j))
+#     # test whether any valid move is available 
+#     # to escape the check
+#     for from_row in range(8):
+#         for from_col in range(8):
+#             # find all pieces of king's color
+#             if pieces[board[from_row][from_col]][0] == color:
+#                 for to_row in range(8):
+#                     for to_col in range(8):
+#                         color_to, type_to, ucode = pieces[board[to_row][to_col]]
+#                         if color == color_to:
+#                             continue
+#                         else:
+#                             move = (from_row, from_col, to_row, to_col)
+#                             if game.Game.is_valid_move(board, from_row, from_col, to_row, to_col):  ## << ==== PROBLEM
+#                                 new_board = test_move(board, move)
+#                                 if not is_check(new_board, color):
+#                                     return False
 
-    # test whether the king has at least one tile 
-    # in its neighborhood it can move to without being check after that move
-    # if such a tile is found, return False (not check-mate)
-    for row, col in king_nbhd:
-        # if occupied by own piece: skip
-        if pieces[board[row][col]][0] == color:
-            continue
-        else:
-            # make a copy of board and move king on new_board
-            new_board = [[tile for tile in row] for row in board]
-            new_board[row][col] = '1' if color == 'w' else '7'
-            new_board[king[0]][king[1]] = '0'
+#     # if no move to safety is found, return True (check-mate)
+#     return True
 
-            # as soon as 1 safe move is found, it is not check-mate
-            if not is_check(new_board, color):
-                return False
 
-    # if no safe tile is found, return True (check-mate)
-    return True
+# def is_check_mate(board, color):
+
+#     if not is_check(board, color):
+#         return False
+
+#     # find the king
+#     for i in range(8):
+#         for j in range(8):
+#             if ((color == "w" and board[i][j] == '1') # white king 
+#                 or (color == "b" and board[i][j] == '7')): # black king
+#                 king = (i, j)
+
+#     # create list of tiles surrounding the king
+#     king_nbhd = []
+#     for i in [king[0] - 1, king[0], king[0] + 1]:
+#         for j in [king[1] - 1, king[1], king[1] + 1]:
+#             if i >= 0 and i <= 7 and j >= 0  and j <= 7 and not king == (i,j):
+#                 king_nbhd.append((i,j))
+
+#     # test whether the king has at least one tile 
+#     # in its neighborhood it can move to without being check after that move
+#     # if such a tile is found, return False (not check-mate)
+#     for row, col in king_nbhd:
+#         # if occupied by own piece: skip
+#         if pieces[board[row][col]][0] == color:
+#             continue
+#         else:
+#             # make a copy of board and move king on new_board
+#             new_board = [[tile for tile in row] for row in board]
+#             new_board[row][col] = '1' if color == 'w' else '7'
+#             new_board[king[0]][king[1]] = '0'
+
+#             # as soon as 1 safe move is found, it is not check-mate
+#             if not is_check(new_board, color):
+#                 return False
+
+#     # if no safe tile is found, return True (check-mate)
+#     return True
 
 

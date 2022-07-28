@@ -349,6 +349,12 @@ class Game():
         color, type, ucode = Game.pieces[moving_piece]
         opponent = "b" if color == "w" else "w" 
 
+        #******************************************************************************
+        #******************************************************************************
+        # once is_check_mate function exists, use it here
+        #******************************************************************************
+        #******************************************************************************
+
         # if chess_rules.is_check_mate(board, opponent):
         #     self.status = '6' # check mate
         if chess_rules.is_check(board, opponent):
@@ -558,3 +564,5 @@ class Game():
                 else:
                     return False
 
+
+    

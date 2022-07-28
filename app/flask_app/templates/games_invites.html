@@ -11,9 +11,9 @@
 {% block body %}
 
 <!-- send game invitation -->
-<div class="row">
+<div class="row mt-3">
     <div class="col mx-auto">
-        <h2>Send a Game Invitation</h2>
+        <h3>Send a Game Invitation</h3>
         <form action="/games/invite" method="post">
             <div class="form-group my-3">
                 <select class="form-control" name="opponent">
@@ -49,11 +49,11 @@
 <!-- accept pending invitations -->
 <div class="row mt-5">
     <div class="col mx-auto">
-        <h2>Accept Game Invitations</h2>
+        <h3>Accept Game Invitations</h3>
         {% if invitations %}
         <p>Select an invitation to start a new game</p>
         {% else %}
-        <p>You have no pending invitations</p>
+        <p>You have no new invitations</p>
         {% endif %}
         {% for invitation in invitations %}
         <div>

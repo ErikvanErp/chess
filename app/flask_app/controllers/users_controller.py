@@ -9,7 +9,15 @@ from flask_app.models import user, game
 @app.route('/')
 def index():
     # get the opening board
-    board = game.Game.opening_position
+    board  = "54312345"
+    board += "60066666"
+    board += "00600000"
+    board += "06000000"
+    board += "000C0000"
+    board += "00000000"
+    board += "CCC0CCCC"
+    board += "BA9789AB"
+    
     # convert to 8 x 8 array of ucodes for display
     board_array = [list(board[i:i+8]) for i in range(0,64,8)]
     ucodes_array = [[game.Game.pieces[tile][2] for tile in row] for row in board_array]
