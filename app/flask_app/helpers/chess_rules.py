@@ -212,7 +212,13 @@ def is_check(board, color):
 
 # is king with color check mate 
 # relies on is_check
+# Junly 27: this function is incomplete
+# still need to test whether a move of a piece that is not the king
+# can prevent the attack on the king 
 def is_check_mate(board, color):
+
+    if not is_check(board, color):
+        return False
 
     # find the king
     for i in range(8):
@@ -225,7 +231,7 @@ def is_check_mate(board, color):
     king_nbhd = []
     for i in [king[0] - 1, king[0], king[0] + 1]:
         for j in [king[1] - 1, king[1], king[1] + 1]:
-            if i >= 0 and i <= 7 and j >= 0  and j <= 7:
+            if i >= 0 and i <= 7 and j >= 0  and j <= 7 and not king == (i,j):
                 king_nbhd.append((i,j))
 
     # test whether the king has at least one tile 

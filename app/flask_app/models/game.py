@@ -288,6 +288,8 @@ class Game():
 #
 #******************************************************************************
 
+    #******************************************************************************
+    #
     # make_move
     # 1. record captured piece
     #    - extra logic for en passant
@@ -298,6 +300,7 @@ class Game():
     #    - update games 
     #    - insert into moves 
     #
+    #******************************************************************************
     def make_move(self, *move):
         (from_row, from_col, to_row, to_col) = move
 
@@ -346,9 +349,9 @@ class Game():
         color, type, ucode = Game.pieces[moving_piece]
         opponent = "b" if color == "w" else "w" 
 
-        if chess_rules.is_check_mate(board, opponent):
-            self.status = '6' # check mate
-        elif chess_rules.is_check(board, opponent):
+        # if chess_rules.is_check_mate(board, opponent):
+        #     self.status = '6' # check mate
+        if chess_rules.is_check(board, opponent):
             self.status = '2' # check
         else:
             self.status = '1' # active game
@@ -391,34 +394,50 @@ class Game():
         connectToMySQL(Game.db).query_db(move_query, move_data)
 
         return
-
+    #******************************************************************************
+    #
     # is_valid_move:
     # checks whether a proposed move is valid,
     # is_valid_move does not care whose turn it is.
     # For Castling and En Passant Capture of a pawn,
     # previous moves need to be considered.
-
+    #
     # this is where most of the rules of chess are coded
+    #******************************************************************************
 
     def is_valid_move(self, *move):
         (from_row, from_col, to_row, to_col) = move
         vector = (to_row - from_row, to_col - from_col)
+
+        # status code greater than 3: game over     
+        if int(self.status) > 3:
+            return False
 
         board = [list(self.tiles)[i:i+8] for i in range(0, 64, 8)]
   
         if not chess_rules.general_rules(board, move):
             return False
         
+        # color: the current player
+        # color_to: the color of a piece on the tile we want to move to
+        # if there is no piece there, color_to is None
         color, type, ucode = Game.pieces[board[from_row][from_col]]
         color_to, type_to, ucode_to = Game.pieces[board[to_row][to_col]]
 
-        # status == '2' means check
-        if self.status == '2' and type != "k":
-            return False       
-        # status code greater than 3: game over     
-        if int(self.status) > 3:
+        # test if the proposed move results in "check"
+        # 1. copy the board
+        new_board_string = self.tiles
+        new_board = [list(new_board_string[i:i+8]) for i in range(0,64,8)]
+        # 2. make the move on new_board
+        moving_piece = new_board[from_row][from_col]
+        new_board[to_row][to_col] = moving_piece
+        new_board[from_row][from_col] = '0'
+        # 3. check whether player with color is check on new_board
+        if chess_rules.is_check(new_board, color):
             return False
 
+        # if the move does not result in a check situation,
+        # see if it is valid.
         # castling is represented as a move of the king
         if type == "k":
             if move in [(0, 3, 0, 1), (0, 3, 0, 5), (7, 3, 7, 1), (7, 3, 7, 5)] and self.castling_rules(move):
