@@ -2,6 +2,7 @@ from flask import render_template, request, redirect, session
 from flask import flash
 from flask_app import app
 from flask_app.models import user, game
+from flask_app.helpers.chess_rules import is_valid_move
 
 import math
 
@@ -102,9 +103,16 @@ def games_play(game_id):
 @app.route('/games/move', methods=['POST'])
 def make_move():
     print(request.form)
-    game_id = request.form['game_id']
 
+    # retrieve the game 
+    game_id = request.form['game_id']
     move_str = request.form['your_move']
+
+    this_game = game.Game.get_by_game_id({"game_id": game_id})
+
+    # status code greater than 3: game over     
+    if int(this_game.status) > 3:
+        return False
 
     # convert standard row-column notation used for user input
     # to array indices
@@ -123,7 +131,7 @@ def make_move():
     else:
         is_valid = False
 
-    # retrieve the game and make the move
+    # make the move
     if is_valid:
 
         from_col = columns[move_str[0]]
@@ -131,12 +139,9 @@ def make_move():
         to_col = columns[move_str[2]]
         to_row = rows[move_str[3]]
         
-        this_game = game.Game.get_by_game_id({"game_id": game_id})
-
-        # check that the move is valid according to the rules of chess
-        valid_move = this_game.is_valid_move( from_row, from_col, to_row, to_col )
-
-        if valid_move:
+        # if the move is valid according to the rules of chess
+        # make the move
+        if is_valid_move( this_game.game_state, from_row, from_col, to_row, to_col ):
             this_game.make_move( from_row, from_col, to_row, to_col )
 
     return redirect(f'/games/{game_id}/play')

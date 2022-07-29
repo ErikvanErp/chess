@@ -1,14 +1,9 @@
+
 #******************************************************************************
 # 
 # This module contains pure functions that encode the rules of the game
 # - validation of moves by various pieces
 # - verification of check and check-mate
-#
-# Note: 
-# validation of en passant capture of a pawn and castling of the king
-# are not handled here
-# validation of these 2 moves depends on previous moves in the game
-# therefore they are handled by methods of a Game object
 #
 #******************************************************************************
 
@@ -29,20 +24,93 @@ pieces = {
             'C': ("b", "p", u'\u265F')
         }
 
-# return a new board with the move executed
-def test_move(board, move):
+#******************************************************************************
+#
+# is_valid_move:
+# checks whether a proposed move is valid,
+# For Castling and En Passant Capture of a pawn,
+# previous moves need to be considered.
+#
+# this is where the rules of chess are coded
+#******************************************************************************
+
+def is_valid_move(game_state, *from_to):
+    (from_row, from_col, to_row, to_col) = from_to
+    vector = (to_row - from_row, to_col - from_col)
+    
+    if not general_rules(game_state.board, from_to):
+        return False
+    
+    # color: the color of the piece on the "from" tile
+    # color_to: the color of a piece on the tile we want to move to
+    # if there is no piece there, color_to is None
+    color, type, ucode = pieces[game_state.board[from_row][from_col]]
+    color_to, type_to, ucode_to = pieces[game_state.board[to_row][to_col]]
+
+    # # test if the proposed move results in "check"
+    # # 1. copy the board
+    new_board = [[tile for tile in row] for row in game_state.board]
+    # # 2. make the move on new_board
+    moving_piece = new_board[from_row][from_col]
+    new_board[to_row][to_col] = moving_piece
+    new_board[from_row][from_col] = '0'
+    # 3. test whether player with color is check on new_board
+    if is_check(new_board, color):
+        return False
+
+    # if the move does not result in a check situation,
+    # see if it is valid.
+    # castling is represented as a move of the king
+    if type == "k":
+        if from_to in [(0, 3, 0, 1), (0, 3, 0, 5), (7, 3, 7, 1), (7, 3, 7, 5)] and castling_rules(game_state, from_to):
+            return True
+        elif king_rules(game_state.board, from_to):
+            return True
+        else:
+            return False
+
+    elif type == "n":
+        if knight_rules(game_state.board, from_to):
+            return True
+        else:
+            return False
+
+    elif type == "p":
+        return pawn_rules(game_state, from_to)
+
+    elif type in ["q", "r", "b"]:
+        if queen_rook_bishop_rules(game_state.board, from_to, type):
+            return True
+        else:
+            return False
+
+
+# general_rules is called by all rules for moving a piece
+def general_rules(board, move):
     from_row, from_col, to_row, to_col = move
 
+    # is the move in range
+    if from_row not in range(8):
+        return False 
+    if from_col not in range(8):
+        return False 
+    if to_row not in range(8):
+        return False 
+    if to_col not in range(8):
+        return False 
+    
+    # the "from" position is not empty
+    if board[from_row][from_col] == '0':
+        return False
+
+    # you cannot capture your own piece
     color, type, ucode = pieces[board[from_row][from_col]]
     color_to, type_to, ucode_to = pieces[board[to_row][to_col]]
-    if color == None or color == color_to:
-        return None
 
-    new_board = [[tile for tile in row] for row in board]
-    new_board[to_col][from_col] = board[from_row][from_col]
-    new_board[from_row][from_col] = '0'
+    if color == color_to:
+        return False
 
-    return new_board
+    return True
 
 #  
 #  The rules for moving various pieces (excl pawn)
@@ -143,32 +211,84 @@ def queen_rook_bishop_rules(board, move, type):
     # if the direction is correct, and no obstacles are found, the move is valid
     return True
 
-# general_rules is called by all rules for moving a piece
-def general_rules(board, move):
-    from_row, from_col, to_row, to_col = move
 
-    # is the move in range
-    if from_row not in range(8):
-        return False 
-    if from_col not in range(8):
-        return False 
-    if to_row not in range(8):
-        return False 
-    if to_col not in range(8):
-        return False 
+# validation of moves by the pawn
+# For en passant capture we need to check the previous move
+def pawn_rules(game_state, from_to):
+    from_row, from_col, to_row, to_col = from_to
+    vector = (to_row - from_row, to_col - from_col)
     
-    # the "from" position is not empty
-    if board[from_row][from_col] == '0':
+    color, type, ucode = pieces[game_state.board[from_row][from_col]]
+    color_to, type_to, ucode_to = pieces[game_state.board[to_row][to_col]]
+
+    # vertical direction of motion and starting row depend on color
+    forward = 1 if color == "w" else -1
+    start_row = 1 if color == "w" else 6
+
+    # for each of 4 possible vectors allowed by a pawn, check if they are valid
+
+    # move 1 forward to an empty spot
+    if vector == (forward, 0):
+        if game_state.board[from_row + forward][from_col] == "0":
+            return True
+        else:
+            return False
+    
+    # move 2 forward; only allowed from starting position
+    elif vector == (2 * forward,0) and from_row == start_row:
+        if game_state.board[from_row + forward][from_col] == "0" and game_state.board[from_row + 2 * forward][from_col] == "0":
+            return True
+        else: 
+            return False
+
+    # capture of a piece
+    elif vector in [(forward, 1), (forward, -1)]:
+        # an ordinary capture
+        if color_to and color != color_to:
+            return True
+        # en passant capture of pawn
+        else:
+            previous = game_state.last_move
+            if ((not color_to) and color == "w" 
+                    and from_row == 4  
+                    and previous.piece == 'C'
+                    and previous.from_row == 6
+                    and previous.from_col == to_col
+                    and previous.to_row == 4):
+                return True
+            elif ((not color_to) and color == "b" 
+                    and from_row == 3  
+                    and previous.piece == '6'
+                    and previous.from_row == 1
+                    and previous.from_col == to_col
+                    and previous.to_row == 3):
+                return True
+            else:
+                return False
+
+
+# validation of castling 
+# represented as a move of the king, but also involves a rook
+# for validation of castling we need to check past moves
+# the king and rook involved in castling may not have moved before
+def castling_rules(game_state, from_to):
+
+    if (from_to == (0, 3, 0, 1) and game_state.board[0][0:4] == ['5','0','0','1']
+            and not game_state.white_king_moved and not game_state.white_rook_0_moved):
+        return True 
+    elif (from_to == (7, 3, 7, 1) and game_state.board[7][0:4] == ['B','0','0','7']
+            and not game_state.black_king_moved and not game_state.black_rook_0_moved):
+        return True 
+    elif (from_to == (0, 3, 0, 5) and game_state.board[0][4:8] == ['1','0','0','0','5']
+            and not game_state.white_king_moved and not game_state.white_rook_7_moved):
+        return True 
+    elif (from_to == (7, 3, 7, 5) and game_state.board[7][4:8] == ['7','0','0','0','B']
+            and not game_state.black_king_moved and game_state.black_rook_7_moved):
+        return True 
+    else:
         return False
 
-    # you cannot capture your own piece
-    color, type, ucode = pieces[board[from_row][from_col]]
-    color_to, type_to, ucode_to = pieces[board[to_row][to_col]]
 
-    if color == color_to:
-        return False
-
-    return True
 
 #
 #  Functions for check and check-mate
@@ -306,3 +426,17 @@ def is_check(board, color):
 #     return True
 
 
+# return a new board with the move executed
+def test_move(board, from_to):
+    from_row, from_col, to_row, to_col = from_to
+
+    color, type, ucode = pieces[board[from_row][from_col]]
+    color_to, type_to, ucode_to = pieces[board[to_row][to_col]]
+    if color == None or color == color_to:
+        return None
+
+    new_board = [[tile for tile in row] for row in board]
+    new_board[to_col][from_col] = board[from_row][from_col]
+    new_board[from_row][from_col] = '0'
+
+    return new_board

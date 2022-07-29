@@ -1,17 +1,60 @@
 # pymysql connection 
-from asyncio import format_helpers
-from operator import truediv
-import turtle
 from flask_app.config.mysqlconnection import connectToMySQL
 from flask_app import app
 from flask import flash, session
-from flask_app.models import user, move
+from flask_app.models import user
 from flask_app.helpers import chess_rules
 
 import math
 
 #
+# A Move object represents a single one-player move
+#
+class Move():
+    db= "chess_schema"
+
+    def __init__(self, data):
+        self.id = data['id']
+        self.game_id = data['game_id']
+        self.piece = data["piece"]
+        self.from_row = data['from_row']
+        self.from_column = data['from_column']
+        self.to_row = data['to_row']
+        self.to_column = data['to_column']
+        self.promote_to = data['promote_to']
+        self.captured = data['captured']
+        self.created_at = data['created_at']
+        self.updated_at = data['updated_at']
+
+#
+# GameState is an object that has no correspondencei in the database
+# It represents the complete state of a game, 
+# sufficient to determine whether any given move is allowed.
+# It could be the current state of the game,
+# or the possible future state of the game after some extra moves have been tried out,
+# e.g. when testing for check mate
+# 
+class GameState():
+
+    def __init__(self, board, next_move_color, last_move, 
+                white_king_moved, white_rook_0_moved, white_rook_7_moved, 
+                black_king_moved, black_rook_0_moved, black_rook_7_moved):
+        # board position as 8 x 8 array of single characters (0-9, A-C)
+        self.board = board
+        # who will do the next move
+        self.next_move_color = next_move_color
+        # game memory necessary to decide the validity of the next nmove
+        self.last_move          = last_move  # Move object
+        self.white_king_moved   = white_king_moved
+        self.white_rook_0_moved = white_rook_0_moved
+        self.white_rook_7_moved = white_rook_7_moved
+        self.black_king_moved   = black_king_moved
+        self.black_rook_0_moved = black_rook_0_moved
+        self.black_rook_7_moved = black_rook_7_moved
+
+#
 # A Game object represents a single game
+# it contains 2 user objects representing the players
 #
 class Game():
     db= "chess_schema"
@@ -74,6 +117,8 @@ class Game():
         self.is_your_turn = None # is it current_player's turn
         self.moves = []  # list of Move objects
 
+
+
 #******************************************************************************
 #
 #  properties
@@ -119,7 +164,7 @@ class Game():
 
         return row['count']
 
-    # move_number: counts one move by white plus one move by black as 1.
+    # move_number counts as 1: one move by white plus one move by black.
     @property
     def move_number(self):
         return math.floor((self.number_of_moves + 1) / 2)
@@ -134,9 +179,32 @@ class Game():
         query += "LIMIT 1;" 
 
         result = connectToMySQL(Game.db).query_db(query, {"game_id": self.id})
-        last_move = move.Move( result[0] )
+        if len(result) > 0:
+            last_move = Move( result[0] )
+        else:
+            last_move = None
 
         return last_move
+
+    # the state of the current game
+    # all the information necessary to validate proposed moves
+    # represented as a GameState object
+    @property
+    def game_state(self):
+
+        next_move_color = 'w' if (self.number_of_moves % 2 == 0) else 'b'
+
+        return GameState(
+                    self.tiles_array,
+                    next_move_color, 
+                    self.last_move,
+                    self.piece_has_moved(0,3),
+                    self.piece_has_moved(0,0),
+                    self.piece_has_moved(0,7),
+                    self.piece_has_moved(7,3),
+                    self.piece_has_moved(7,0),
+                    self.piece_has_moved(7,7)
+                    )
 
 
 #******************************************************************************
@@ -275,31 +343,18 @@ class Game():
         connectToMySQL(cls.db).query_db(query, data)
         return
 
-#******************************************************************************
-#
-#  object methods
-#  1. make_move
-#  2. is_valid_move
-#  3. castling_rules  <- called by is_valid_move
-#  4. pawn_rules  <- called by is_valid_move
-#                   
-#  These methods rely on various helper functions from the chess_rules module
-#
-#******************************************************************************
 
-    #******************************************************************************
-    #
-    # make_move
-    # 1. record captured piece
-    #    - extra logic for en passant
-    # 2. update board with the move
-    #    - extra logic for castling
-    # 3. determine if opposing king is check or check mate
-    # 4. SQL
-    #    - update games 
-    #    - insert into moves 
-    #
-    #******************************************************************************
+#******************************************************************************
+#
+# object method: make_move
+# 1. record captured piece - extra logic for en passant
+# 2. update board with the move - extra logic for castling
+# 3. determine if opposing king is check or check mate
+# 4. SQL
+#    - update games 
+#    - insert into moves 
+#
+#******************************************************************************
     def make_move(self, *move):
         (from_row, from_col, to_row, to_col) = move
 
@@ -399,99 +454,9 @@ class Game():
         connectToMySQL(Game.db).query_db(move_query, move_data)
 
         return
-    #******************************************************************************
-    #
-    # is_valid_move:
-    # checks whether a proposed move is valid,
-    # is_valid_move does not care whose turn it is.
-    # For Castling and En Passant Capture of a pawn,
-    # previous moves need to be considered.
-    #
-    # this is where most of the rules of chess are coded
-    #******************************************************************************
 
-    def is_valid_move(self, *move):
-        (from_row, from_col, to_row, to_col) = move
-        vector = (to_row - from_row, to_col - from_col)
-
-        # status code greater than 3: game over     
-        if int(self.status) > 3:
-            return False
-
-        board = [list(self.tiles)[i:i+8] for i in range(0, 64, 8)]
-  
-        if not chess_rules.general_rules(board, move):
-            return False
         
-        # color: the current player
-        # color_to: the color of a piece on the tile we want to move to
-        # if there is no piece there, color_to is None
-        color, type, ucode = Game.pieces[board[from_row][from_col]]
-        color_to, type_to, ucode_to = Game.pieces[board[to_row][to_col]]
-
-        # test if the proposed move results in "check"
-        # 1. copy the board
-        new_board_string = self.tiles
-        new_board = [list(new_board_string[i:i+8]) for i in range(0,64,8)]
-        # 2. make the move on new_board
-        moving_piece = new_board[from_row][from_col]
-        new_board[to_row][to_col] = moving_piece
-        new_board[from_row][from_col] = '0'
-        # 3. check whether player with color is check on new_board
-        if chess_rules.is_check(new_board, color):
-            return False
-
-        # if the move does not result in a check situation,
-        # see if it is valid.
-        # castling is represented as a move of the king
-        if type == "k":
-            if move in [(0, 3, 0, 1), (0, 3, 0, 5), (7, 3, 7, 1), (7, 3, 7, 5)] and self.castling_rules(move):
-                return True
-            elif chess_rules.king_rules(board, move):
-                return True
-            else:
-                return False
-
-        elif type == "n":
-            if chess_rules.knight_rules(board, move):
-                return True
-            else:
-                return False
-
-        elif type == "p":
-            return self.pawn_rules(move)
-
-        elif type in ["q", "r", "b"]:
-            if chess_rules.queen_rook_bishop_rules(board, move, type):
-                return True
-            else:
-                return False
-
-    # validation of castling 
-    # represented as a move of the king, but also involves a rook
-    # for validation of castling we need to check past moves
-    # the king and rook involved in castling may not have moved before
-    def castling_rules(self, move):
-        from_row, from_col, to_row, to_col = move
-
-        board = [list(self.tiles)[i:i+8] for i in range(0, 64, 8)]
-
-        if (move == (0, 3, 0, 1) and board[0][0:4] == ['5','0','0','1']
-                and not self.piece_has_moved(0,3) and not self.piece_has_moved(0,0)):
-            return True 
-        elif (move == (7, 3, 7, 1) and board[7][0:4] == ['B','0','0','7']
-                and not self.piece_has_moved(7,3) and not self.piece_has_moved(7,0)):
-            return True 
-        elif (move == (0, 3, 0, 5) and board[0][4:8] == ['1','0','0','0','5']
-                and not self.piece_has_moved(0,3) and not self.piece_has_moved(0,7)):
-            return True 
-        elif (move == (7, 4, 7, 2) and board[7][4:8] == ['7','0','0','0','B']
-                and not self.piece_has_moved(7,3) and not self.piece_has_moved(7,7)):
-            return True 
-        else:
-            return False
-
-    # helper function for castling_rules
+    # helper function needed to determine game_state
     def piece_has_moved(self, row, col):
 
         query  = "SELECT id FROM moves "
@@ -508,60 +473,6 @@ class Game():
         else:
             return True
 
-    # validation of moves by the pawn
-    # For en passant capture we need to check the previous move
-    def pawn_rules(self, move):
-        from_row, from_col, to_row, to_col = move
-        vector = (to_row - from_row, to_col - from_col)
-        
-        board = [list(self.tiles)[i:i+8] for i in range(0, 64, 8)]
-        color, type, ucode = Game.pieces[board[from_row][from_col]]
-        color_to, type_to, ucode_to = Game.pieces[board[to_row][to_col]]
-
-        # vertical direction of motion and starting row depend on color
-        forward = 1 if color == "w" else -1
-        start_row = 1 if color == "w" else 6
-
-        # for each of 4 possible vectors allowed by a pawn, check if they are valid
-
-        # move 1 forward to an empty spot
-        if vector == (forward, 0):
-            if board[from_row + forward][from_col] == "0":
-                return True
-            else:
-                return False
-        
-        # move 2 forward; only allowed from starting position
-        elif vector == (2 * forward,0) and from_row == start_row:
-            if board[from_row + forward][from_col] == "0" and board[from_row + 2 * forward][from_col] == "0":
-                return True
-            else: 
-                return False
-
-        # capture of a piece
-        elif vector in [(forward, 1), (forward, -1)]:
-            # an ordinary capture
-            if color_to and color != color_to:
-                return True
-            # en passant capture of pawn
-            else:
-                previous = self.last_move
-                if ((not color_to) and color == "w" 
-                        and from_row == 4  
-                        and previous.piece == 'C'
-                        and previous.from_row == 6
-                        and previous.from_col == to_col
-                        and previous.to_row == 4):
-                    return True
-                elif ((not color_to) and color == "b" 
-                        and from_row == 3  
-                        and previous.piece == '6'
-                        and previous.from_row == 1
-                        and previous.from_col == to_col
-                        and previous.to_row == 3):
-                    return True
-                else:
-                    return False
-
+    
 
     
