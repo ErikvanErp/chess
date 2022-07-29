@@ -138,6 +138,7 @@ class Game():
 
         return last_move
 
+
 #******************************************************************************
 #
 #  classmethods
@@ -250,9 +251,7 @@ class Game():
         }
 
         # in the games table, user_id refers to the user who sent the invitation
-        # data["user_id"] is the users.id of the current player
-        # (i.e. the session user_id)
-        # these two may or may not be equal 
+        # this may or may not be equal to the session["user_id"]
         if user_data["id"] == session["user_id"]:
             this_game.current_player = user.User(user_data)
             this_game.current_opponent = user.User(opponent_data)
