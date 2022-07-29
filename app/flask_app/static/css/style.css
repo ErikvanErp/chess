@@ -6,6 +6,9 @@
     width: 384px; 
 }
 
+.navbar h1 {
+    font-size: 1.7em;
+}
 .tile {
     width:45px; 
     height:45px; 

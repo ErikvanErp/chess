@@ -36,15 +36,16 @@ class Move():
 # 
 class GameState():
 
-    def __init__(self, board, next_move_color, last_move, 
+    def __init__(self, board, next_move_color, last_piece_moved, last_move, 
                 white_king_moved, white_rook_0_moved, white_rook_7_moved, 
                 black_king_moved, black_rook_0_moved, black_rook_7_moved):
         # board position as 8 x 8 array of single characters (0-9, A-C)
         self.board = board
         # who will do the next move
         self.next_move_color = next_move_color
-        # game memory necessary to decide the validity of the next nmove
-        self.last_move          = last_move  # Move object
+        # game memory necessary to decide the validity of the next move
+        self.last_piece_moved   = last_piece_moved
+        self.last_move          = last_move # 4-tuple
         self.white_king_moved   = white_king_moved
         self.white_rook_0_moved = white_rook_0_moved
         self.white_rook_7_moved = white_rook_7_moved
@@ -197,7 +198,8 @@ class Game():
         return GameState(
                     self.tiles_array,
                     next_move_color, 
-                    self.last_move,
+                    self.last_move.piece if self.last_move else None,
+                    (self.last_move.from_row, self.last_move.from_column, self.last_move.to_row, self.last_move.to_column) if self.last_move else None,
                     self.piece_has_moved(0,3),
                     self.piece_has_moved(0,0),
                     self.piece_has_moved(0,7),
@@ -355,10 +357,11 @@ class Game():
 #    - insert into moves 
 #
 #******************************************************************************
-    def make_move(self, *move):
-        (from_row, from_col, to_row, to_col) = move
+    def make_move(self, *from_to):
+        (from_row, from_col, to_row, to_col) = from_to
 
-        board = self.tiles_array
+        # make a copy of the board
+        board = [[tile for tile in row] for row in self.tiles_array]
         moving_piece = board[from_row][from_col]
 
         # save the piece that is captured
@@ -385,35 +388,48 @@ class Game():
         # castling: 
         # the king's move has been taken care off
         # now also move the rook
-        if move == (0,3,0,1):
+        if from_to == (0,3,0,1):
             board[0][0] = '0'
             board[0][2] = '5'
-        elif move == (0,3,0,5):
+        elif from_to == (0,3,0,5):
             board[0][7] = '0'
             board[0][4] = '5'
-        elif move == (7,3,7,1):
+        elif from_to == (7,3,7,1):
             board[7][0] = '0'
             board[7][2] = 'B'
-        elif move == (7,3,7,5):
+        elif from_to == (7,3,7,5):
             board[7][7] = '0'
             board[7][4] = 'B'
 
+
+        print("*******************")
         # after the move has been made
-        # test if the opponents king is check mate or check
+        # test if the opponent's king is check mate or check
+        # new_game_state = game state after completion of the current move
         color, type, ucode = Game.pieces[moving_piece]
         opponent = "b" if color == "w" else "w" 
 
-        #******************************************************************************
-        #******************************************************************************
-        # once is_check_mate function exists, use it here
-        #******************************************************************************
-        #******************************************************************************
+        new_game_state = GameState(
+                    board,
+                    opponent, 
+                    moving_piece,
+                    from_to,
+                    self.game_state.white_king_moved or (from_row, from_col) == (0,3),   
+                    self.game_state.white_rook_0_moved or (from_row, from_col) == (0,0),   
+                    self.game_state.white_rook_7_moved or (from_row, from_col) == (0,7),   
+                    self.game_state.black_king_moved or (from_row, from_col) == (7,3),   
+                    self.game_state.black_rook_0_moved or (from_row, from_col) == (7,0), 
+                    self.game_state.black_rook_7_moved or (from_row, from_col) == (7,7)
+                    )
 
-        # if chess_rules.is_check_mate(board, opponent):
-        #     self.status = '6' # check mate
-        if chess_rules.is_check(board, opponent):
+        if chess_rules.is_check_mate(new_game_state, opponent): 
+            self.status = '6' # check mate
+            print("mate")
+        elif chess_rules.is_check(board, opponent):
+            print("check")
             self.status = '2' # check
         else:
+            print("not check")
             self.status = '1' # active game
         
         # convert the board back to a string to be saved as "tiles"
@@ -472,6 +488,9 @@ class Game():
             return False
         else:
             return True
+
+
+
 
     
 

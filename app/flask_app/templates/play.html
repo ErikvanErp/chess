@@ -48,12 +48,12 @@
         </div>
         
         <!-- display move number, and check or check-mate -->
-        <p class="mt-3">Move {{ move_nr }}   
-            {% if this_game.status == 2 %}. <b>Check</b>
-            {% elif this_game.status == 3 %}. <b>Draw offered</b>
-            {% elif this_game.status == 4 %}. <b>Draw</b>
-            {% elif this_game.status == 5 %}. <b>Resigned</b>
-            {% elif this_game.status == 6 %}. <b>Check mate</b>
+        <p class="mt-3">Move {{ move_nr }}.   
+            {% if this_game.status == 2 %} <b>Check</b>
+            {% elif this_game.status == 3 %} <b>Draw offered</b>
+            {% elif this_game.status == 4 %} <b>Draw</b>
+            {% elif this_game.status == 5 %} <b>Resigned</b>
+            {% elif this_game.status == 6 %} <b>Check mate</b>
             {% endif %}
         </p>
         

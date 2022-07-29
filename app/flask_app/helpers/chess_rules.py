@@ -47,10 +47,10 @@ def is_valid_move(game_state, *from_to):
     color, type, ucode = pieces[game_state.board[from_row][from_col]]
     color_to, type_to, ucode_to = pieces[game_state.board[to_row][to_col]]
 
-    # # test if the proposed move results in "check"
-    # # 1. copy the board
+    # test if the proposed move results in "check"
+    # 1. copy the board
     new_board = [[tile for tile in row] for row in game_state.board]
-    # # 2. make the move on new_board
+    # 2. make the move on new_board
     moving_piece = new_board[from_row][from_col]
     new_board[to_row][to_col] = moving_piece
     new_board[from_row][from_col] = '0'
@@ -60,6 +60,7 @@ def is_valid_move(game_state, *from_to):
 
     # if the move does not result in a check situation,
     # see if it is valid.
+
     # castling is represented as a move of the king
     if type == "k":
         if from_to in [(0, 3, 0, 1), (0, 3, 0, 5), (7, 3, 7, 1), (7, 3, 7, 5)] and castling_rules(game_state, from_to):
@@ -248,20 +249,19 @@ def pawn_rules(game_state, from_to):
             return True
         # en passant capture of pawn
         else:
-            previous = game_state.last_move
             if ((not color_to) and color == "w" 
                     and from_row == 4  
-                    and previous.piece == 'C'
-                    and previous.from_row == 6
-                    and previous.from_col == to_col
-                    and previous.to_row == 4):
+                    and game_state.last_piece_moved == 'C'
+                    and game_state.last_move[0] == 6
+                    and game_state.last_move[1] == to_col
+                    and game_state.last_move[2] == 4):
                 return True
             elif ((not color_to) and color == "b" 
                     and from_row == 3  
-                    and previous.piece == '6'
-                    and previous.from_row == 1
-                    and previous.from_col == to_col
-                    and previous.to_row == 3):
+                    and game_state.last_piece_moved == '6'
+                    and game_state.last_move[0] == 1
+                    and game_state.last_move[1] == to_col
+                    and game_state.last_move[2] == 3):
                 return True
             else:
                 return False
@@ -305,17 +305,17 @@ def is_check(board, color):
             if ((color == "w" and board[i][j] == '1') 
                 or (color == "b" and board[i][j] == '7')):
                 king = (i, j)
-    
+
     # print(f"king {king[0]}, {king[1]}")
     # return True from the loop as soon as 
     # an opponent's piece is found that attacks the king
     opponent = "b" if color == "w" else "w"
     # print(f"opponent {opponent}")
 
-    # check all 64 tiles
+    # check all 64 tiles (other than the king in question)
     for i in range(8):
         for j in range(8):
-            print(f"tile: i {i} j {j}")
+            # print(f"tile: i {i} j {j}")
             if (i, j) == king:
                 continue
             tile = board[i][j]
@@ -330,11 +330,11 @@ def is_check(board, color):
                 # king_rules needs to call is_check
                 # note that a king can not be "checked" by another king
                 # but we need to test this for the purpose of check_mate
-                if type == "k" and i - king[0] in [-1,0,1] and j - king[j] in [-1,0,1]:
+                if type == "k" and i - king[0] in [-1,0,1] and j - king[1] in [-1,0,1]:
                     return True
                 elif type == "n" and knight_rules(board, move):
                     return True
-                #  The simple rules for capture of the king by pawns are hard coded here
+                #  The simple rules for capture of the king by pawns are hardcoded here
                 elif type == "p":
                     forward = 1 if opponent == "w" else -1
                     if king[0] == i + forward and (king[1] == j + 1 or king[1] == j - 1):
@@ -347,96 +347,54 @@ def is_check(board, color):
 
 # is king with color check mate 
 # relies on is_check
-# 
+
 # there is one situation where check_mate depends on previous move:
-# if en passant capture gets us out of check
-# this is why we have to import the Game class
-# def is_check_mate(board, color):
+# if en passant capture can get us out of check
+# this is why we have to import the game_state, and not just the board
+def is_check_mate(game_state, color):
 
-#     # if not check, then not check mate
-#     if not is_check(board, color):
-#         return False
+    board = game_state.board
+    print(f"board {board}")
 
-#     # find the king
-#     for i in range(8):
-#         for j in range(8):
-#             if ((color == "w" and board[i][j] == '1') # white king 
-#                 or (color == "b" and board[i][j] == '7')): # black king
-#                 king = (i, j)
+    # if not check, then not check mate
+    if not is_check(board, color):
+        print("not check on first test")
+        return False
 
-#     # test whether any valid move is available 
-#     # to escape the check
-#     for from_row in range(8):
-#         for from_col in range(8):
-#             # find all pieces of king's color
-#             if pieces[board[from_row][from_col]][0] == color:
-#                 for to_row in range(8):
-#                     for to_col in range(8):
-#                         color_to, type_to, ucode = pieces[board[to_row][to_col]]
-#                         if color == color_to:
-#                             continue
-#                         else:
-#                             move = (from_row, from_col, to_row, to_col)
-#                             if game.Game.is_valid_move(board, from_row, from_col, to_row, to_col):  ## << ==== PROBLEM
-#                                 new_board = test_move(board, move)
-#                                 if not is_check(new_board, color):
-#                                     return False
+    # find the king
+    for i in range(8):
+        for j in range(8):
+            if ((color == "w" and board[i][j] == '1') # white king 
+                or (color == "b" and board[i][j] == '7')): # black king
+                king = (i, j)
 
-#     # if no move to safety is found, return True (check-mate)
-#     return True
+    print(f"king {king[0]} {king[1]}")
+    # test whether any valid move is available 
+    # to escape the check
+    for from_row in range(8):
+        for from_col in range(8):
+            # find all pieces of king's color
+            if pieces[board[from_row][from_col]][0] == color:
+                print(pieces[board[from_row][from_col]][2])
+                for to_row in range(8):
+                    for to_col in range(8):
+                        # now test whether this piece can move from ... to ...
+                        if is_valid_move(game_state, from_row, from_col, to_row, to_col):
+                            print(f"is valid move from {from_row} {from_col} to {to_row} {to_col}")
+                            # if the move is valid, test if it fixes the check 
+                            new_board = [[tile for tile in row] for row in board]
+                            new_board[to_col][from_col] = board[from_row][from_col]
+                            new_board[from_row][from_col] = '0'
+                            # if the move results in a new_board where king is not check
+                            # return False (not check mate)
+                            if not is_check(new_board, color):
+                                print("is not check")
+                                return False
 
+    # if no move to safety is found, return True (check-mate)
+    return True
 
-# def is_check_mate(board, color):
-
-#     if not is_check(board, color):
-#         return False
-
-#     # find the king
-#     for i in range(8):
-#         for j in range(8):
-#             if ((color == "w" and board[i][j] == '1') # white king 
-#                 or (color == "b" and board[i][j] == '7')): # black king
-#                 king = (i, j)
-
-#     # create list of tiles surrounding the king
-#     king_nbhd = []
-#     for i in [king[0] - 1, king[0], king[0] + 1]:
-#         for j in [king[1] - 1, king[1], king[1] + 1]:
-#             if i >= 0 and i <= 7 and j >= 0  and j <= 7 and not king == (i,j):
-#                 king_nbhd.append((i,j))
-
-#     # test whether the king has at least one tile 
-#     # in its neighborhood it can move to without being check after that move
-#     # if such a tile is found, return False (not check-mate)
-#     for row, col in king_nbhd:
-#         # if occupied by own piece: skip
-#         if pieces[board[row][col]][0] == color:
-#             continue
-#         else:
-#             # make a copy of board and move king on new_board
-#             new_board = [[tile for tile in row] for row in board]
-#             new_board[row][col] = '1' if color == 'w' else '7'
-#             new_board[king[0]][king[1]] = '0'
-
-#             # as soon as 1 safe move is found, it is not check-mate
-#             if not is_check(new_board, color):
-#                 return False
-
-#     # if no safe tile is found, return True (check-mate)
-#     return True
+    
 
 
-# return a new board with the move executed
-def test_move(board, from_to):
-    from_row, from_col, to_row, to_col = from_to
 
-    color, type, ucode = pieces[board[from_row][from_col]]
-    color_to, type_to, ucode_to = pieces[board[to_row][to_col]]
-    if color == None or color == color_to:
-        return None
-
-    new_board = [[tile for tile in row] for row in board]
-    new_board[to_col][from_col] = board[from_row][from_col]
-    new_board[from_row][from_col] = '0'
-
-    return new_board
