@@ -1,4 +1,5 @@
 # pymysql connection 
+from asyncio import format_helpers
 from flask_app.config.mysqlconnection import connectToMySQL
 from flask_app import app
 from flask import flash, session
@@ -115,7 +116,7 @@ class Game():
         self.current_player = None  
         self.current_opponent = None  
         self.current_is_white = None # does current_player play white?
-        self.is_your_turn = None # is it current_player's turn
+        # self.is_your_turn = None # is it current_player's turn
         self.moves = []  # list of Move objects
 
 
@@ -169,6 +170,16 @@ class Game():
     @property
     def move_number(self):
         return math.floor((self.number_of_moves + 1) / 2)
+
+    @property
+    def is_current_player_turn(self):
+        
+        if self.current_is_white and self.number_of_moves % 2 == 0:
+            return True
+        elif not self.current_is_white and self.number_of_moves % 2 == 1:
+            return True
+        else:
+            return False
 
     # the last move that was made in this game
     @property

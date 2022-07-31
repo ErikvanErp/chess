@@ -1,0 +1,8 @@
+July 31, 2022
+
+1. The game rules needs to be debugged; have not been thoroughly tested
+2. Styling
+3. games.html: add a completed games category at the bottom, for viewing
+
+Known bugs:
+1. check mate: app falsely signals check mate on games.id = 12

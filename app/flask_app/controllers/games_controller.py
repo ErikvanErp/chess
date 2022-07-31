@@ -3,6 +3,7 @@ from flask import flash
 from flask_app import app
 from flask_app.models import user, game
 from flask_app.helpers.chess_rules import is_valid_move
+from flask import json, jsonify
 
 import math
 
@@ -88,6 +89,7 @@ def games_accept(game_id):
     game.Game.accept_invitation({"games_id": game_id})
     return redirect('/games/new')
 
+
 # render the game board
 @app.route('/games/<int:game_id>/play')
 def games_play(game_id):
@@ -96,12 +98,15 @@ def games_play(game_id):
 
     this_game = game.Game.get_by_game_id({"game_id": game_id})
 
-    move_nr = math.floor((this_game.number_of_moves + 1) / 2)
-    return render_template("play.html", this_game=this_game, move_nr=move_nr)
+    return render_template("play.html", this_game=this_game)
+
 
 # process a proposed move
 @app.route('/games/move', methods=['POST'])
 def make_move():
+    if not session['is_logged_in']:
+        return redirect('/')
+
     print(request.form)
 
     # retrieve the game 
@@ -146,5 +151,35 @@ def make_move():
 
     return redirect(f'/games/{game_id}/play')
 
+# process a move submitted by player
+# sent as a fetch request (method = "POST") in play.js
+@app.route('/api/games/move', methods=['POST'])
+def make_move_js():
+    if not session['is_logged_in']:
+        return (jsonify({}), 401)
 
+    data = json.loads(request.data)
 
+    game_id = int(data['game_id'])
+    from_row = int(data['move_from'][0])
+    from_col = int(data['move_from'][1])
+    to_row = int(data['move_to'][0])
+    to_col = int(data['move_to'][1])
+        
+    print("********************************")
+    print("********************************")
+    print("********************************")
+    print(f"game {game_id}, move: {from_row}{from_col}{to_row}{to_col}")    
+    print("********************************")
+    print("********************************")
+    print("********************************")
+
+    this_game = game.Game.get_by_game_id({"game_id": game_id})
+
+    print(f"this_game after query: {this_game.id}")
+
+    if is_valid_move( this_game.game_state, from_row, from_col, to_row, to_col ):
+        this_game.make_move( from_row, from_col, to_row, to_col )
+        return (jsonify({}), 201)
+    else:
+        return (jsonify({}), 400)

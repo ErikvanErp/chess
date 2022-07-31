@@ -4,10 +4,19 @@
     * with tiles of size 45 x 45px 
     */
     width: 384px; 
+    font-family: 'Roboto', sans-serif;
 }
 
 .navbar h1 {
     font-size: 1.7em;
+    font-family: 'Roboto Condensed', sans-serif;
+}
+
+.container h1 h2 h3 h4 h5 h6 {
+    font-family: 'Roboto Condensed', sans-serif;
+}
+.btn {
+    font-family: 'Roboto Condensed', sans-serif;
 }
 .tile {
     width:45px; 
@@ -22,4 +31,22 @@
 }
 .dark {
     background-color: #ddd;
+}
+
+.active.dark {
+    background-color: rgb(180,137,105);
+}
+
+.active.light {
+    background-color: rgb(238,218,185);
+}
+.pointer {
+    cursor:pointer
+}
+.greendot {
+    height: 15px;
+    width: 15px;
+    border-radius: 50%;
+    background-color: green;
+    margin-left: 6px;
 }
