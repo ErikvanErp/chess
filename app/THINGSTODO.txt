@@ -1,8 +1,28 @@
 July 31, 2022
 
-1. The game rules needs to be debugged; have not been thoroughly tested
-2. Styling
-3. games.html: add a completed games category at the bottom, for viewing
+1. Some rules have not been coded:
+- crucial: promotion of a pawn has not been coded
+- rules for castling are incomplete; need to test that the king is not check on several tiles
+- need to be able to:
+  - offer a draw; 
+  - accept a draw; 
+  - resign
+2. The game rules needs to be thoroughly tested and debugged
+3. Styling: the games.html page needs work
+  - add 2 icons: for accepting and rejecting game invitations
+4. games.html: add a completed games category at the bottom
 
 Known bugs:
-1. check mate: app falsely signals check mate on games.id = 12
+1. check mate: app falsely signals check mate instead of check
+
+for testing, use these board strings:
+
+board strings for games 12
+54300345666000660001060009062000000000000008C000CCC00CCCBA9700AB
+
+board string for games 32
+black king is check, but not mate
+01000000006B0B666000060006000000000000C00000000CCCC00C0007005000
+
+
+

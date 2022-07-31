@@ -8,9 +8,9 @@
 
 {% block body %}
 
-<div class="row">
+<div class="row mt-3">
     <div class="col mx-auto">
-        <h2>{{ session['first_name']}}'s games</h2>
+        <h3>{{ session['first_name']}}'s games</h3>
         <div>
             <a href="/games/new" class="btn btn-primary mb-4" style="width:100%">Start a new game 
                 {% if number_pending > 0 %}
