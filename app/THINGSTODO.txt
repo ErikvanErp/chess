@@ -7,22 +7,12 @@ July 31, 2022
   - offer a draw; 
   - accept a draw; 
   - resign
-2. The game rules needs to be thoroughly tested and debugged
+2. The game needs to be thoroughly tested and debugged
 3. Styling: the games.html page needs work
   - add 2 icons: for accepting and rejecting game invitations
 4. games.html: add a completed games category at the bottom
-
-Known bugs:
-1. check mate: app falsely signals check mate instead of check
-
-for testing, use these board strings:
-
-board strings for games 12
-54300345666000660001060009062000000000000008C000CCC00CCCBA9700AB
-
-board string for games 32
-black king is check, but not mate
-01000000006B0B666000060006000000000000C00000000CCCC00C0007005000
+5. Optimize code: there are a LOT of queries SELECT COUNT(*) FROM moves. This can be made much more efficient. Should be done by "Game.get_by_game_id()".
+6. Use flash messages if an invalid move is submitted; do some basic validations in javascript before allowing submit (e.g. check for valid vectors). 
 
 
 
