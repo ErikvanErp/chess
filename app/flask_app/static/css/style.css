@@ -50,3 +50,18 @@
     background-color: green;
     margin-left: 6px;
 }
+.reddot {
+    height: 15px;
+    width: 15px;
+    border-radius: 50%;
+    background-color: red;
+    margin-left: 6px;
+}
+.whitedot {
+    height: 15px;
+    width: 15px;
+    border-radius: 50%;
+    background-color: #eee;
+    border: solid 1px black;
+    margin-left: 6px;
+}

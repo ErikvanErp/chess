@@ -26,8 +26,8 @@
             <div>
                 <a href="/games/{{ game.id }}/play" class="btn btn-light btn-outline-secondary my-1" style="width:100%">
                     {{ game.current_opponent.full_name}}
-                    <span style="font-size: 1.5em;">{% if game.current_is_white %} &#x265A {% else %} &#x2654 {% endif %}  </span>                            
-                    ({{ game.move_number}})
+                    <span>{% if game.current_is_white %} with Black {% else %} with White {% endif %}</span>                            
+                    (move {{ game.move_number}})
                 </a>
             </div>
             {% endfor %}
@@ -41,8 +41,8 @@
             <div>
                 <a href="/games/{{ game.id }}/play" class="btn btn-light btn-outline-secondary my-1" style="width:100%">
                     {{ game.current_opponent.full_name}}
-                    <span style="font-size: 1.5em;">{% if game.current_is_white %} &#x265A {% else %} &#x2654 {% endif %}</span>
-                    ({{ game.move_number}})
+                    <span>{% if game.current_is_white %} with Black {% else %} with White {% endif %}</span>
+                    (move {{ game.move_number}})
                 </a>
             </div>
             {% endfor %}

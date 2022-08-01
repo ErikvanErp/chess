@@ -16,9 +16,13 @@
         
         <div class="my-3" style="display:flex; justify-content: space-between;">
             <div>
-                {% if this_game.current_is_white %}
+                {% if this_game.current_is_white and this_game.is_current_player_turn %}
                 <div style="display:flex; align-items: center;">White: You 
                     <div class="greendot"></div>
+                </div>
+                {% elif this_game.current_is_white %}
+                <div style="display:flex; align-items: center;">White: You 
+                    <div class="reddot"></div>
                 </div>
                 {% else %}
                 <div>White: {{ this_game.current_opponent.full_name}}</div>
@@ -28,11 +32,11 @@
             {# display move number, and check or check-mate #}
             <div>
                 Move {{ this_game.move_number}}
-                {% if this_game.status == 2 %} - <b>Check</b>
+                {% if this_game.status == 2 %} - <span style="color:red">Check</span>
                 {% elif this_game.status == 3 %} - <b>Draw offered</b>
                 {% elif this_game.status == 4 %} - <b>Draw</b>
                 {% elif this_game.status == 5 %} - <b>Resigned</b>
-                {% elif this_game.status == 6 %} - <b>Check mate</b>
+                {% elif this_game.status == 6 %} - <span style="">Check mate</span>
                 {% endif %}
             </div>
         </div>
@@ -81,8 +85,10 @@
         <div class="mt-3">
             {% if this_game.current_is_white %}
             <div>Black: {{ this_game.current_opponent.full_name}}</div>
-            {% else %}
+            {% elif this_game.is_current_player_turn %}
             <div style="display:flex; align-items: center;">Black: You <div class="greendot"></div></div>
+            {% else %}
+            <div style="display:flex; align-items: center;">Black: You <div class="reddot"></div></div>
             {% endif %}
         </div>
         
